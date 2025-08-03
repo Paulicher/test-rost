@@ -1,0 +1,439 @@
+import React, { useState, useMemo } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { TrendingUp, DollarSign, Building2, Filter, ArrowUpDown } from 'lucide-react';
+
+const Dashboard = () => {
+  const [selectedSector, setSelectedSector] = useState('Все секторы');
+  const [sortBy, setSortBy] = useState('revenue');
+
+  // Данные по компаниям (примерные данные на основе открытых источников)
+  const companiesData = {
+    'Нефтегаз': [
+      { name: 'Газпром', revenue: 8034.0, profit: 1235.4, margin: 15.4, employees: 480000 },
+      { name: 'Роснефть', revenue: 7567.8, profit: 847.2, margin: 11.2, employees: 350000 },
+      { name: 'ЛУКОЙЛ', revenue: 4923.7, profit: 698.5, margin: 14.2, employees: 102000 },
+      { name: 'Новатэк', revenue: 1247.3, profit: 267.8, margin: 21.5, employees: 29000 },
+      { name: 'Татнефть', revenue: 987.4, profit: 134.6, margin: 13.6, employees: 65000 },
+      { name: 'Башнефть', revenue: 756.2, profit: 89.3, margin: 11.8, employees: 45000 },
+      { name: 'Сургутнефтегаз', revenue: 1456.8, profit: 198.7, margin: 13.6, employees: 78000 },
+      { name: 'Газпром нефть', revenue: 2134.5, profit: 267.9, margin: 12.5, employees: 67000 },
+      { name: 'НК Русснефть', revenue: 234.7, profit: 12.8, margin: 5.5, employees: 18000 },
+      { name: 'Зарубежнефть', revenue: 187.3, profit: 23.4, margin: 12.5, employees: 8500 }
+    ],
+    'Металлургия': [
+      { name: 'НЛМК', revenue: 1087.6, profit: 234.7, margin: 21.6, employees: 55000 },
+      { name: 'Северсталь', revenue: 998.4, profit: 178.9, margin: 17.9, employees: 52000 },
+      { name: 'ММК', revenue: 789.3, profit: 134.2, margin: 17.0, employees: 48000 },
+      { name: 'Мечел', revenue: 456.7, profit: 45.6, margin: 10.0, employees: 67000 },
+      { name: 'ЕВРАЗ', revenue: 634.8, profit: 67.8, margin: 10.7, employees: 69000 },
+      { name: 'Металлоинвест', revenue: 534.9, profit: 89.4, margin: 16.7, employees: 45000 },
+      { name: 'РУСАЛ', revenue: 398.7, profit: 34.5, margin: 8.7, employees: 61000 },
+      { name: 'Кузбасская ТК', revenue: 234.5, profit: 23.8, margin: 10.1, employees: 23000 },
+      { name: 'Трубная МК', revenue: 456.2, profit: 45.2, margin: 9.9, employees: 78000 },
+      { name: 'НТМК', revenue: 298.4, profit: 34.7, margin: 11.6, employees: 18000 }
+    ],
+    'Банки': [
+      { name: 'Сбербанк', revenue: 4567.8, profit: 1267.4, margin: 27.8, employees: 266000 },
+      { name: 'ВТБ', revenue: 1876.3, profit: 234.7, margin: 12.5, employees: 87000 },
+      { name: 'Газпромбанк', revenue: 987.6, profit: 156.8, margin: 15.9, employees: 43000 },
+      { name: 'Альфа-Банк', revenue: 645.2, profit: 98.7, margin: 15.3, employees: 38000 },
+      { name: 'Россельхозбанк', revenue: 456.8, profit: 34.5, margin: 7.6, employees: 32000 },
+      { name: 'Открытие', revenue: 398.4, profit: 23.4, margin: 5.9, employees: 29000 },
+      { name: 'Промсвязьбанк', revenue: 234.7, profit: 12.3, margin: 5.2, employees: 18000 },
+      { name: 'Росбанк', revenue: 298.3, profit: 34.2, margin: 11.5, employees: 15000 },
+      { name: 'Райффайзенбанк', revenue: 187.6, profit: 23.4, margin: 12.5, employees: 12000 },
+      { name: 'ЮниКредит Банк', revenue: 156.8, profit: 18.9, margin: 12.1, employees: 8500 }
+    ],
+    'IT': [
+      { name: 'Яндекс', revenue: 467.8, profit: 45.6, margin: 9.7, employees: 18000 },
+      { name: 'Mail.ru Group', revenue: 123.4, profit: 23.4, margin: 19.0, employees: 12000 },
+      { name: 'Лаборатория Касперского', revenue: 89.7, profit: 12.3, margin: 13.7, employees: 4200 },
+      { name: 'Softline', revenue: 234.5, profit: 34.2, margin: 14.6, employees: 8900 },
+      { name: 'Ланит', revenue: 187.6, profit: 23.4, margin: 12.5, employees: 13000 },
+      { name: 'АстроСофт', revenue: 67.8, profit: 8.9, margin: 13.1, employees: 3400 },
+      { name: 'IBS', revenue: 156.7, profit: 18.9, margin: 12.1, employees: 7800 },
+      { name: 'Росинформтехнологии', revenue: 98.4, profit: 12.7, margin: 12.9, employees: 5600 },
+      { name: 'Техносерв', revenue: 134.5, profit: 16.8, margin: 12.5, employees: 6200 },
+      { name: 'Croc', revenue: 87.3, profit: 9.8, margin: 11.2, employees: 4500 }
+    ],
+    'Машиностроение': [
+      { name: 'Ростех', revenue: 2134.7, profit: 178.9, margin: 8.4, employees: 450000 },
+      { name: 'ОАК', revenue: 567.8, profit: 34.2, margin: 6.0, employees: 120000 },
+      { name: 'Вертолеты России', revenue: 234.5, profit: 23.4, margin: 10.0, employees: 45000 },
+      { name: 'УВЗ', revenue: 187.6, profit: 12.3, margin: 6.6, employees: 32000 },
+      { name: 'Алмаз-Антей', revenue: 456.7, profit: 45.6, margin: 10.0, employees: 125000 },
+      { name: 'КамАЗ', revenue: 298.4, profit: 23.8, margin: 8.0, employees: 45000 },
+      { name: 'ГАЗ', revenue: 234.7, profit: 18.9, margin: 8.1, employees: 67000 },
+      { name: 'УАЗ', revenue: 123.4, profit: 8.9, margin: 7.2, employees: 18000 },
+      { name: 'Автодизель', revenue: 89.7, profit: 6.7, margin: 7.5, employees: 12000 },
+      { name: 'РМЗ', revenue: 67.8, profit: 4.5, margin: 6.6, employees: 8900 }
+    ],
+    'Ритейл': [
+      { name: 'X5 Retail Group', revenue: 2345.6, profit: 89.7, margin: 3.8, employees: 385000 },
+      { name: 'Магнит', revenue: 1876.4, profit: 67.8, margin: 3.6, employees: 290000 },
+      { name: 'Лента', revenue: 567.8, profit: 23.4, margin: 4.1, employees: 45000 },
+      { name: 'Дикси', revenue: 456.7, profit: 12.3, margin: 2.7, employees: 56000 },
+      { name: 'О Кей', revenue: 298.4, profit: 8.9, margin: 3.0, employees: 23000 },
+      { name: 'Глобус', revenue: 234.5, profit: 7.8, margin: 3.3, employees: 18000 },
+      { name: 'Монетка', revenue: 187.6, profit: 6.7, margin: 3.6, employees: 15000 },
+      { name: 'Карусель', revenue: 156.8, profit: 4.5, margin: 2.9, employees: 12000 },
+      { name: 'Балтика', revenue: 123.4, profit: 3.4, margin: 2.8, employees: 9800 },
+      { name: 'Семья', revenue: 98.7, profit: 2.8, margin: 2.8, employees: 7600 }
+    ]
+  };
+
+  const sectors = Object.keys(companiesData);
+
+  const getSectorData = () => {
+    if (selectedSector === 'Все секторы') {
+      return Object.entries(companiesData).map(([sector, companies]) => ({
+        sector,
+        totalRevenue: companies.reduce((sum, c) => sum + c.revenue, 0),
+        totalProfit: companies.reduce((sum, c) => sum + c.profit, 0),
+        avgMargin: companies.reduce((sum, c) => sum + c.margin, 0) / companies.length,
+        companies: companies.length
+      }));
+    } else {
+      return companiesData[selectedSector] || [];
+    }
+  };
+
+  const sortedData = useMemo(() => {
+    const data = getSectorData();
+    if (selectedSector === 'Все секторы') return data;
+    
+    return [...data].sort((a, b) => {
+      switch (sortBy) {
+        case 'revenue': return b.revenue - a.revenue;
+        case 'profit': return b.profit - a.profit;
+        case 'margin': return b.margin - a.margin;
+        default: return 0;
+      }
+    });
+  }, [selectedSector, sortBy]);
+
+  const totalStats = useMemo(() => {
+    const allCompanies = Object.values(companiesData).flat();
+    return {
+      totalRevenue: allCompanies.reduce((sum, c) => sum + c.revenue, 0),
+      totalProfit: allCompanies.reduce((sum, c) => sum + c.profit, 0),
+      avgMargin: allCompanies.reduce((sum, c) => sum + c.margin, 0) / allCompanies.length,
+      totalCompanies: allCompanies.length
+    };
+  }, []);
+
+  const COLORS = ['#2563eb', '#16a34a', '#dc2626', '#ca8a04', '#7c3aed', '#c2410c'];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-200">
+          <h1 className="text-3xl font-bold text-slate-800 mb-2">
+            Анализ прибыльности компаний РФ
+          </h1>
+          <p className="text-slate-600">
+            Интерактивный dashboard по ключевым секторам российской экономики
+          </p>
+        </div>
+
+        {/* Controls */}
+        <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-200">
+          <div className="flex flex-wrap gap-4 items-center">
+            <div className="flex items-center space-x-2">
+              <Filter className="w-5 h-5 text-slate-600" />
+              <select 
+                value={selectedSector} 
+                onChange={(e) => setSelectedSector(e.target.value)}
+                className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="Все секторы">Все секторы</option>
+                {sectors.map(sector => (
+                  <option key={sector} value={sector}>{sector}</option>
+                ))}
+              </select>
+            </div>
+            
+            {selectedSector !== 'Все секторы' && (
+              <div className="flex items-center space-x-2">
+                <ArrowUpDown className="w-5 h-5 text-slate-600" />
+                <select 
+                  value={sortBy} 
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="revenue">По выручке</option>
+                  <option value="profit">По прибыли</option>
+                  <option value="margin">По рентабельности</option>
+                </select>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-200">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <DollarSign className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm text-slate-600">Общая выручка</p>
+                <p className="text-2xl font-bold text-slate-800">
+                  {(totalStats.totalRevenue / 1000).toFixed(1)}T ₽
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-200">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <TrendingUp className="w-6 h-6 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm text-slate-600">Общая прибыль</p>
+                <p className="text-2xl font-bold text-slate-800">
+                  {(totalStats.totalProfit / 1000).toFixed(1)}T ₽
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-200">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <TrendingUp className="w-6 h-6 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-sm text-slate-600">Средняя рентабельность</p>
+                <p className="text-2xl font-bold text-slate-800">
+                  {totalStats.avgMargin.toFixed(1)}%
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-200">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-orange-100 rounded-lg">
+                <Building2 className="w-6 h-6 text-orange-600" />
+              </div>
+              <div>
+                <p className="text-sm text-slate-600">Компаний</p>
+                <p className="text-2xl font-bold text-slate-800">
+                  {totalStats.totalCompanies}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Charts */}
+        {selectedSector === 'Все секторы' ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Sector Revenue Chart */}
+            <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-200">
+              <h3 className="text-xl font-semibold text-slate-800 mb-4">
+                Выручка по секторам (млрд ₽)
+              </h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={sortedData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="sector" 
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                    fontSize={12}
+                  />
+                  <YAxis />
+                  <Tooltip 
+                    formatter={(value, name) => [
+                      `${(value / 1000).toFixed(1)}T ₽`, 
+                      name === 'totalRevenue' ? 'Выручка' : 'Прибыль'
+                    ]}
+                  />
+                  <Bar dataKey="totalRevenue" fill="#2563eb" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Sector Profit Chart */}
+            <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-200">
+              <h3 className="text-xl font-semibold text-slate-800 mb-4">
+                Прибыль по секторам (млрд ₽)
+              </h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={sortedData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="sector" 
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                    fontSize={12}
+                  />
+                  <YAxis />
+                  <Tooltip 
+                    formatter={(value) => [`${value.toFixed(1)} млрд ₽`, 'Прибыль']}
+                  />
+                  <Bar dataKey="totalProfit" fill="#16a34a" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Pie Chart */}
+            <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-200">
+              <h3 className="text-xl font-semibold text-slate-800 mb-4">
+                Распределение выручки
+              </h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={sortedData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ sector, percent }) => `${sector}: ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="totalRevenue"
+                  >
+                    {sortedData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value) => [`${(value / 1000).toFixed(1)}T ₽`, 'Выручка']}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Margin Chart */}
+            <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-200">
+              <h3 className="text-xl font-semibold text-slate-800 mb-4">
+                Средняя рентабельность по секторам (%)
+              </h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={sortedData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="sector" 
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                    fontSize={12}
+                  />
+                  <YAxis />
+                  <Tooltip 
+                    formatter={(value) => [`${value.toFixed(1)}%`, 'Рентабельность']}
+                  />
+                  <Bar dataKey="avgMargin" fill="#7c3aed" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        ) : (
+          /* Company Details */
+          <div className="space-y-6">
+            {/* Company Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-200">
+                <h3 className="text-xl font-semibold text-slate-800 mb-4">
+                  Топ-10 компаний по выручке ({selectedSector})
+                </h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={sortedData.slice(0, 10)}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="name" 
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
+                      fontSize={11}
+                    />
+                    <YAxis />
+                    <Tooltip 
+                      formatter={(value, name) => [
+                        `${value.toFixed(1)} млрд ₽`, 
+                        name === 'revenue' ? 'Выручка' : 'Прибыль'
+                      ]}
+                    />
+                    <Bar dataKey="revenue" fill="#2563eb" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-200">
+                <h3 className="text-xl font-semibold text-slate-800 mb-4">
+                  Прибыль компаний ({selectedSector})
+                </h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={sortedData.slice(0, 10)}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="name" 
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
+                      fontSize={11}
+                    />
+                    <YAxis />
+                    <Tooltip 
+                      formatter={(value) => [`${value.toFixed(1)} млрд ₽`, 'Прибыль']}
+                    />
+                    <Bar dataKey="profit" fill="#16a34a" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Company Table */}
+            <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-200">
+              <h3 className="text-xl font-semibold text-slate-800 mb-4">
+                Детальная информация по компаниям
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-3 px-4 font-semibold">Компания</th>
+                      <th className="text-right py-3 px-4 font-semibold">Выручка (млрд ₽)</th>
+                      <th className="text-right py-3 px-4 font-semibold">Прибыль (млрд ₽)</th>
+                      <th className="text-right py-3 px-4 font-semibold">Рентабельность (%)</th>
+                      <th className="text-right py-3 px-4 font-semibold">Сотрудники</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedData.slice(0, 10).map((company, index) => (
+                      <tr key={company.name} className="border-b hover:bg-slate-50">
+                        <td className="py-3 px-4 font-medium">{company.name}</td>
+                        <td className="py-3 px-4 text-right">{company.revenue.toFixed(1)}</td>
+                        <td className="py-3 px-4 text-right">{company.profit.toFixed(1)}</td>
+                        <td className="py-3 px-4 text-right">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            company.margin > 15 ? 'bg-green-100 text-green-800' :
+                            company.margin > 10 ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {company.margin.toFixed(1)}%
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right">{company.employees.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;
